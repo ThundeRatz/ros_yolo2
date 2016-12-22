@@ -36,18 +36,19 @@ def process_label_file(voc_input, yolo_output):
             output.write('{} {}\n'.format(index, " ".join([str(x) for x in converted])))
 
 
-def main(args):
-    if len(args) > 1:
-        input_dir = args[1]
-    else:
-        input_dir = '.'
-    input_dir = os.path.realpath(input_dir)
+def parse_args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input', help='Directory with VOC labels')
+    parser.add_argument('output', help='Output directory, should contain a images/ folder')
+    return parser.parse_args()
 
-    if len(args) > 2:
-        output_dir = args[2]
-    else:
-        output_dir = '.'
-    output_dir = os.path.realpath(output_dir)
+
+def main(args):
+    print('Using classes: {}'.format(' '.join(CLASSES)))
+    args = parse_args()
+    input_dir = os.path.realpath(args.input)
+    output_dir = os.path.realpath(args.output)
 
     label_dir = os.path.join(output_dir, 'labels')
     os.makedirs(label_dir, exist_ok=True)

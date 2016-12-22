@@ -1,4 +1,7 @@
+*.cmake
+
 catkin_generated
+CMakeCache.txt
 CMakeFiles
 test_results
 
