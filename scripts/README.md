@@ -8,7 +8,7 @@ Converts [labelImg](https://github.com/tzutalin/labelImg) formatted labels (VOC 
 
 ##### Example usage:
 
-``./labelImg_to_yolo.py directory_with_voc_labels directory_with_images_folder`
+`./labelImg_to_yolo.py directory_with_voc_labels directory_with_images_folder`
 
 Given a directory containing the `images` folder, the script will create and populate the `labels` folder, create a `backup` folder, create files `training-list.txt`, `validation-list.txt` and `names.txt` and create `dataset.data` pointing to these files.
 
