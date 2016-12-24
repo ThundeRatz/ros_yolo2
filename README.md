@@ -2,7 +2,7 @@
 Integrates [YOLOv2](http://pjreddie.com/darknet/yolo/) with ROS, generating messages with position and confidence of detection.
 
 ## Requirements
-* ROS (tested on kinetic)
+* ROS (tested on Jade and Kinetic)
 
 * GPU supporting CUDA
 
