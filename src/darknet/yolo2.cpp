@@ -74,7 +74,7 @@ yolo2::ImageDetections Detector::detect(const sensor_msgs::ImageConstPtr& msg)
   image im = convert_image(msg);
   yolo2::ImageDetections detections;
   detections.detections = forward(im.data);
-  detections.image_stamp = msg->header.stamp;
+  detections.header.stamp = msg->header.stamp;
   free_image(im);
   return detections;
 }
