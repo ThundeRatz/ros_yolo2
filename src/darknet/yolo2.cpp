@@ -24,10 +24,15 @@
 
 #include "darknet/yolo2.h"
 
+#include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include <yolo2/Detection.h>
+#include <yolo2/ImageDetections.h>
 
 #include <cstdint>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 extern "C"
 {
@@ -41,7 +46,8 @@ extern "C"
 
 namespace darknet
 {
-Detector::Detector(std::string& model_file, std::string& trained_file)
+Detector::Detector(std::string& model_file, std::string& trained_file, double min_confidence, double nms) :
+  min_confidence(min_confidence), nms(nms)
 {
   net = parse_network_cfg(&model_file[0]);
   load_weights(&net, &trained_file[0]);
@@ -105,14 +111,14 @@ std::vector<yolo2::Detection> Detector::forward(float *data)
 
   output_layer.output = prediction;
   if (output_layer.type == DETECTION)
-    get_detection_boxes(output_layer, 1, 1, .8, probs.data(), boxes.data(), 0);
+    get_detection_boxes(output_layer, 1, 1, min_confidence, probs.data(), boxes.data(), 0);
   else if (output_layer.type == REGION)
-    get_region_boxes(output_layer, 1, 1, .8, probs.data(), boxes.data(), 0, 0);
+    get_region_boxes(output_layer, 1, 1, min_confidence, probs.data(), boxes.data(), 0, 0);
   else
     error("Last layer must produce detections\n");
 
   int num_classes = output_layer.classes;
-  do_nms(boxes.data(), probs.data(), output_layer.w * output_layer.h * output_layer.n, num_classes, .4);
+  do_nms(boxes.data(), probs.data(), output_layer.w * output_layer.h * output_layer.n, num_classes, nms);
   std::vector<yolo2::Detection> detections;
   for (unsigned i = 0; i < probs.size(); i++)
   {
