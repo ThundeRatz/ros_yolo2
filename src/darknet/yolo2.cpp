@@ -68,13 +68,13 @@ yolo2::ImageDetections Detector::detect(const sensor_msgs::ImageConstPtr& msg)
 {
   if (msg->encoding != sensor_msgs::image_encodings::RGB8)
   {
-    ROS_ERROR("Ignoring unsupported encoding ", msg->encoding);
+    ROS_ERROR("Ignoring unsupported encoding");
     return yolo2::ImageDetections();
   }
   image im = convert_image(msg);
   yolo2::ImageDetections detections;
   detections.detections = forward(im.data);
-  detections.image_stamp = msg->header.stamp;
+  detections.header.stamp = msg->header.stamp;
   free_image(im);
   return detections;
 }
