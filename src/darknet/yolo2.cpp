@@ -41,20 +41,17 @@ extern "C"
 
 namespace darknet
 {
-Detector::Detector(std::string& model_file, std::string& trained_file) : predictions(FRAMES), prediction_index(0), filled_buffer(false)
+Detector::Detector(std::string& model_file, std::string& trained_file)
 {
   net = parse_network_cfg(&model_file[0]);
   load_weights(&net, &trained_file[0]);
   set_batch_network(&net, 1);
 
   layer output_layer = net.layers[net.n - 1];
-  average.resize(output_layer.outputs);
   boxes.resize(output_layer.w * output_layer.h * output_layer.n);
   probs.resize(output_layer.w * output_layer.h * output_layer.n);
   for (auto& i : probs)
     i = (float *)calloc(output_layer.classes, sizeof(float));
-  for (auto& i : predictions)
-    i = (float *)calloc(output_layer.outputs, sizeof(float));
 }
 
 Detector::~Detector()
@@ -106,18 +103,7 @@ std::vector<yolo2::Detection> Detector::forward(float *data)
   float *prediction = network_predict(net, data);
   layer output_layer = net.layers[net.n - 1];
 
-  memcpy(predictions[prediction_index], prediction, output_layer.outputs * sizeof(float));
-  if (++prediction_index == FRAMES)
-  {
-    filled_buffer = true;
-    prediction_index = 0;
-  }
-  if (!filled_buffer)
-    return std::vector<yolo2::Detection>();
-
-  mean_arrays(predictions.data(), FRAMES, output_layer.outputs, average.data());
-  output_layer.output = average.data();
-
+  output_layer.output = prediction;
   if (output_layer.type == DETECTION)
     get_detection_boxes(output_layer, 1, 1, .8, probs.data(), boxes.data(), 0);
   else if (output_layer.type == REGION)
@@ -132,7 +118,7 @@ std::vector<yolo2::Detection> Detector::forward(float *data)
   {
     int class_id = max_index(probs[i], num_classes);
     float prob = probs[i][class_id];
-    if (prob > .8)
+    if (prob)
     {
       yolo2::Detection detection;
       box b = boxes[i];

@@ -56,13 +56,8 @@ class Detector
   std::vector<yolo2::Detection> forward(float *data);
 
   network net;
-  static const int FRAMES = 3;
-  std::vector<float *> predictions;
-  std::vector<float> average;
   std::vector<box> boxes;
   std::vector<float *> probs;
-  int prediction_index;
-  bool filled_buffer;
 };
 }  // namespace darknet
 
