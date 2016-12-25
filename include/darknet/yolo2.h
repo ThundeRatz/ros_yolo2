@@ -29,9 +29,8 @@
 #include <yolo2/Detection.h>
 #include <yolo2/ImageDetections.h>
 
-
-#include <vector>
 #include <string>
+#include <vector>
 
 extern "C"
 {
@@ -47,7 +46,7 @@ namespace darknet
 class Detector
 {
  public:
-  Detector(std::string& model_file, std::string& trained_file);
+  Detector(std::string& model_file, std::string& trained_file, double min_confidence, double nms);
   ~Detector();
   yolo2::ImageDetections detect(const sensor_msgs::ImageConstPtr& msg);
 
@@ -55,14 +54,10 @@ class Detector
   image convert_image(const sensor_msgs::ImageConstPtr& msg);
   std::vector<yolo2::Detection> forward(float *data);
 
+  double min_confidence, nms;
   network net;
-  static const int FRAMES = 3;
-  std::vector<float *> predictions;
-  std::vector<float> average;
   std::vector<box> boxes;
   std::vector<float *> probs;
-  int prediction_index;
-  bool filled_buffer;
 };
 }  // namespace darknet
 

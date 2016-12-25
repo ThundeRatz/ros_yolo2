@@ -47,16 +47,19 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "yolo2");
-  ros::NodeHandle node;
+  ros::NodeHandle node("~");
 
   const std::string NET_DATA = ros::package::getPath("yolo2") + "/data/";
   std::string config = NET_DATA + "yolo.cfg", weights = NET_DATA + "yolo.weights";
-  darknet::Detector detector(config, weights);
+  double confidence, nms;
+  node.param<double>("confidence", confidence, .8);
+  node.param<double>("nms", nms, .4);
+  darknet::Detector detector(config, weights, confidence, nms);
   yolo = &detector;
 
   image_transport::ImageTransport transport(node);
   image_transport::Subscriber subscriber = transport.subscribe("image", 1, imageCallback);
-  publisher = node.advertise<yolo2::ImageDetections>("yolo2_detections", 20);
+  publisher = node.advertise<yolo2::ImageDetections>("detections", 5);
   ros::spin();
 
   return 0;
