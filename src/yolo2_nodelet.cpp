@@ -22,45 +22,59 @@
  * SOFTWARE.
  */
 
-#ifndef DARKNET_YOLO2_H
-#define DARKNET_YOLO2_H
-
 #include <image_transport/image_transport.h>
-#include <yolo2/Detection.h>
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
+#include <ros/console.h>
+#include <ros/package.h>
+#include <ros/ros.h>
 #include <yolo2/ImageDetections.h>
 
 #include <string>
 #include <vector>
 
-extern "C"
-{
-#undef __cplusplus
-#include "box.h"  // NOLINT(build/include)
-#include "image.h"  // NOLINT(build/include)
-#include "network.h"  // NOLINT(build/include)
-#define __cplusplus
-}
+#include "darknet/yolo2.h"
 
-namespace darknet
+namespace
 {
-class Detector
+  darknet::Detector yolo;
+  ros::Publisher publisher;
+
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+  {
+    publisher.publish(yolo.detect(msg));
+  }
+}  // namespace
+
+namespace yolo2
+{
+class Yolo2Nodelet : public nodelet::Nodelet
 {
  public:
-  Detector() {}
-  Detector(std::string& model_file, std::string& trained_file, double min_confidence, double nms);
-  void load(std::string& model_file, std::string& trained_file, double min_confidence, double nms);
-  ~Detector();
-  yolo2::ImageDetections detect(const sensor_msgs::ImageConstPtr& msg);
+  virtual void onInit()
+  {
+    ros::NodeHandle& node = getPrivateNodeHandle();
+    const std::string NET_DATA = ros::package::getPath("yolo2") + "/data/";
+    std::string config = NET_DATA + "yolo.cfg", weights = NET_DATA + "yolo.weights";
+    double confidence, nms;
+    node.param<double>("confidence", confidence, .8);
+    node.param<double>("nms", nms, .4);
+    yolo.load(config, weights, confidence, nms);
+
+    transport = new image_transport::ImageTransport(node);
+    subscriber = transport->subscribe("image", 1, imageCallback);
+    publisher = node.advertise<yolo2::ImageDetections>("detections", 5);
+  }
+
+  ~Yolo2Nodelet()
+  {
+    delete transport;
+  }
 
  private:
-  image convert_image(const sensor_msgs::ImageConstPtr& msg);
-  std::vector<yolo2::Detection> forward(float *data);
-
-  double min_confidence_, nms_;
-  network net_;
-  std::vector<box> boxes_;
-  std::vector<float *> probs_;
+  image_transport::ImageTransport *transport;
+  image_transport::Subscriber subscriber;
 };
-}  // namespace darknet
+}  // namespace yolo2
 
-#endif  // DARKNET_YOLO2_H
+PLUGINLIB_EXPORT_CLASS(yolo2::Yolo2Nodelet, nodelet::Nodelet)
