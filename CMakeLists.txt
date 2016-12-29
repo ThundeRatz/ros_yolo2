@@ -19,11 +19,11 @@ if (FORTIFY)
 endif()
 
 find_package(catkin REQUIRED COMPONENTS
-  image_transport message_generation roscpp roslib roslint sensor_msgs std_msgs
+  image_transport message_generation nodelet roscpp roslib roslint sensor_msgs std_msgs
 )
 find_package(CUDA REQUIRED)
 
-roslint_cpp()
+roslint_cpp(include/darknet/yolo2.h src/darknet/yolo2.cpp src/yolo2_node.cpp src/yolo2_nodelet.cpp)
 roslint_add_test()
 
 ## To declare and build messages, services or actions from within this
@@ -73,11 +73,7 @@ include_directories(
   darknet/src
 )
 
-set(CUDA_NVCC_FLAGS -DGPU=1)
-if (${CUDNN})
-  set(CUDA_NVCC_FLAGS -DCUDNN=1)
-endif()
-cuda_add_library(yolo2 STATIC
+cuda_add_library(yolo2
   darknet/src/activation_kernels.cu
   darknet/src/activation_layer.c
   darknet/src/activations.c
@@ -140,6 +136,17 @@ add_executable(yolo2_node
 add_dependencies(yolo2_node yolo2_generate_messages_cpp)
 
 target_link_libraries(yolo2_node
+  yolo2
+  ${catkin_LIBRARIES}
+)
+
+add_library(yolo2_nodelet
+  src/yolo2_nodelet.cpp
+  src/darknet/yolo2.cpp
+)
+add_dependencies(yolo2_nodelet yolo2_generate_messages_cpp)
+
+target_link_libraries(yolo2_nodelet
   yolo2
   ${catkin_LIBRARIES}
 )
