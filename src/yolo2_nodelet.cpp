@@ -30,20 +30,35 @@
 #include <ros/ros.h>
 #include <yolo2/ImageDetections.h>
 
+#include <condition_variable>
+#include <mutex>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include "darknet/yolo2.h"
 
 namespace
 {
-  darknet::Detector yolo;
-  ros::Publisher publisher;
+darknet::Detector yolo;
+ros::Publisher publisher;
+image im = {};
+float *image_data = nullptr;
+ros::Time timestamp;
+std::mutex mutex;
+std::condition_variable im_condition;
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg)
-  {
-    publisher.publish(yolo.detect(msg));
-  }
+void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+{
+  im = yolo.convert_image(msg);
+  std::unique_lock<std::mutex> lock(mutex);
+  if (image_data)
+    free(image_data);
+  timestamp = msg->header.stamp;
+  image_data = im.data;
+  lock.unlock();
+  im_condition.notify_one();
+}
 }  // namespace
 
 namespace yolo2
@@ -61,19 +76,44 @@ class Yolo2Nodelet : public nodelet::Nodelet
     node.param<double>("nms", nms, .4);
     yolo.load(config, weights, confidence, nms);
 
-    transport = new image_transport::ImageTransport(node);
-    subscriber = transport->subscribe("image", 1, imageCallback);
+    image_transport::ImageTransport transport = image_transport::ImageTransport(node);
+    subscriber = transport.subscribe("image", 1, imageCallback);
     publisher = node.advertise<yolo2::ImageDetections>("detections", 5);
+
+    yolo_thread = new std::thread(run_yolo);
   }
 
   ~Yolo2Nodelet()
   {
-    delete transport;
+    yolo_thread->join();
+    delete yolo_thread;
   }
 
  private:
-  image_transport::ImageTransport *transport;
   image_transport::Subscriber subscriber;
+  std::thread *yolo_thread;
+
+  static void run_yolo()
+  {
+    while (ros::ok())
+    {
+      float *data;
+      ros::Time stamp;
+      {
+        std::unique_lock<std::mutex> lock(mutex);
+        while (!image_data)
+          im_condition.wait(lock);
+        data = image_data;
+        image_data = nullptr;
+        stamp = timestamp;
+      }
+      boost::shared_ptr<yolo2::ImageDetections> detections(new yolo2::ImageDetections);
+      *detections = yolo.detect(data);
+      detections->header.stamp = stamp;
+      publisher.publish(detections);
+      free(data);
+    }
+  }
 };
 }  // namespace yolo2
 

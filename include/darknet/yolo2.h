@@ -47,13 +47,12 @@ class Detector
 {
  public:
   Detector() {}
-  Detector(std::string& model_file, std::string& trained_file, double min_confidence, double nms);
   void load(std::string& model_file, std::string& trained_file, double min_confidence, double nms);
   ~Detector();
-  yolo2::ImageDetections detect(const sensor_msgs::ImageConstPtr& msg);
+  image convert_image(const sensor_msgs::ImageConstPtr& msg);
+  yolo2::ImageDetections detect(float *data);
 
  private:
-  image convert_image(const sensor_msgs::ImageConstPtr& msg);
   std::vector<yolo2::Detection> forward(float *data);
 
   double min_confidence_, nms_;
