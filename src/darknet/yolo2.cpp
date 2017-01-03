@@ -102,6 +102,10 @@ image Detector::convert_image(const sensor_msgs::ImageConstPtr& msg)
     j += offset;
   }
 
+  if (net_.w == width && net_.h == height)
+  {
+    return im;
+  }
   image resized = resize_image(im, net_.w, net_.h);
   free_image(im);
   return resized;
