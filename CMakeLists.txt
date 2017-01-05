@@ -129,17 +129,6 @@ target_link_libraries(yolo2
   ${CUDA_curand_LIBRARY}
 )
 
-add_executable(yolo2_node
-  src/yolo2_node.cpp
-  src/darknet/yolo2.cpp
-)
-add_dependencies(yolo2_node yolo2_generate_messages_cpp)
-
-target_link_libraries(yolo2_node
-  yolo2
-  ${catkin_LIBRARIES}
-)
-
 add_library(yolo2_nodelet
   src/yolo2_nodelet.cpp
   src/darknet/yolo2.cpp

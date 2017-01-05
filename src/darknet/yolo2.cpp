@@ -46,11 +46,6 @@ extern "C"
 
 namespace darknet
 {
-Detector::Detector(std::string& model_file, std::string& trained_file, double min_confidence, double nms)
-{
-  load(model_file, trained_file, min_confidence, nms);
-}
-
 void Detector::load(std::string& model_file, std::string& trained_file, double min_confidence, double nms)
 {
   min_confidence_ = min_confidence;
@@ -76,23 +71,21 @@ Detector::~Detector()
   free_network(net_);
 }
 
-yolo2::ImageDetections Detector::detect(const sensor_msgs::ImageConstPtr& msg)
+yolo2::ImageDetections Detector::detect(float *data)
 {
-  if (msg->encoding != sensor_msgs::image_encodings::RGB8)
-  {
-    ROS_ERROR("Ignoring unsupported encoding");
-    return yolo2::ImageDetections();
-  }
-  image im = convert_image(msg);
   yolo2::ImageDetections detections;
-  detections.detections = forward(im.data);
-  detections.header.stamp = msg->header.stamp;
-  free_image(im);
+  detections.detections = forward(data);
   return detections;
 }
 
 image Detector::convert_image(const sensor_msgs::ImageConstPtr& msg)
 {
+  if (msg->encoding != sensor_msgs::image_encodings::RGB8)
+  {
+    ROS_ERROR("Unsupported encoding");
+    exit(-1);
+  }
+
   auto data = msg->data;
   uint32_t height = msg->height, width = msg->width, offset = msg->step - 3 * width;
   uint32_t i = 0, j = 0;
@@ -109,6 +102,10 @@ image Detector::convert_image(const sensor_msgs::ImageConstPtr& msg)
     j += offset;
   }
 
+  if (net_.w == width && net_.h == height)
+  {
+    return im;
+  }
   image resized = resize_image(im, net_.w, net_.h);
   free_image(im);
   return resized;
