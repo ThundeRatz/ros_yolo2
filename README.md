@@ -7,12 +7,30 @@ Integrates [YOLOv2](http://pjreddie.com/darknet/yolo/) with ROS, generating mess
 * GPU supporting CUDA
 
 ## Installation
-This repository should be cloned to the `src` directory of your workspace. Alternatively, the following `.rosinstall` entry adds this repository for usage with `wstool`:
+If using `wstool`, the following `.rosinstall` entry adds this repository to your workspace:
 
 ```
 - git:
     local-name: yolo2
     uri: https://github.com/ThundeRatz/ros_yolo2.git
+```
+
+If building from source, change to the `src` directory of your workspace and use `git clone --recursive https://github.com/tiagoshibata/ros_yolo2.git` to download with submodules.
+
+This repository is using ROS's [nodelet API](http://wiki.ros.org/nodelet), which allows loading multiple nodelets in the same process, supporting zero-copy message transfers between nodelets. No node executables are built; instead, shared libraries are. To use them, check the nodelet docs and [tutorials](http://wiki.ros.org/nodelet/Tutorials). This sample launchfile creates a nodelet manager with an uvc_camera and a yolo2 nodelet:
+
+```
+<launch>
+  <group ns="vision">
+    <node pkg="nodelet" type="nodelet" name="vision_nodelet" args="manager"/>
+    <node pkg="nodelet" type="nodelet" name="camera" args="load uvc_camera/CameraNodelet vision_nodelet" />
+    <remap from="yolo2/image" to="image_raw" />
+    <node pkg="nodelet" type="nodelet" name="yolo2" args="load yolo2/Yolo2Nodelet vision_nodelet">
+      <param name="confidence" value="0.5" />
+      <param name="nms" value="0.4" />
+    </node>
+  </group>
+</launch>
 ```
 
 ## Setup
