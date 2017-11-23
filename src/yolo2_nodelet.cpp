@@ -51,12 +51,14 @@ std::condition_variable im_condition;
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
   im = yolo.convert_image(msg);
-  std::unique_lock<std::mutex> lock(mutex);
-  if (image_data)
-    free(image_data);
-  timestamp = msg->header.stamp;
-  image_data = im.data;
-  lock.unlock();
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (image_data)
+      // Dropped image (image callback is running faster than YOLO thread)
+      free(image_data);
+    timestamp = msg->header.stamp;
+    image_data = im.data;
+  }
   im_condition.notify_one();
 }
 }  // namespace
@@ -101,8 +103,7 @@ class Yolo2Nodelet : public nodelet::Nodelet
       ros::Time stamp;
       {
         std::unique_lock<std::mutex> lock(mutex);
-        while (!image_data)
-          im_condition.wait(lock);
+        im_condition.wait(lock, []{return image_data;});
         data = image_data;
         image_data = nullptr;
         stamp = timestamp;
