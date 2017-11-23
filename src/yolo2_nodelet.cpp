@@ -46,6 +46,7 @@ ros::Publisher publisher;
 image im = {};
 float *image_data = nullptr;
 ros::Time timestamp;
+uint32_t width, height;
 std::mutex mutex;
 std::condition_variable im_condition;
 
@@ -58,6 +59,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
       // Dropped image (image callback is running faster than YOLO thread)
       free(image_data);
     timestamp = msg->header.stamp;
+    width = msg->width;
+    height = msg->height;
     image_data = im.data;
   }
   im_condition.notify_one();
@@ -116,7 +119,7 @@ class Yolo2Nodelet : public nodelet::Nodelet
         stamp = timestamp;
       }
       boost::shared_ptr<yolo2::ImageDetections> detections(new yolo2::ImageDetections);
-      *detections = yolo.detect(data);
+      *detections = yolo.detect(data, width, height);
       detections->header.stamp = stamp;
       publisher.publish(detections);
       free(data);

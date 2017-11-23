@@ -51,10 +51,10 @@ void Detector::load(std::string& model_file, std::string& trained_file, double m
   min_confidence_ = min_confidence;
   nms_ = nms;
   net_ = parse_network_cfg(&model_file[0]);
-  load_weights(&net_, &trained_file[0]);
-  set_batch_network(&net_, 1);
+  load_weights(net_, &trained_file[0]);
+  set_batch_network(net_, 1);
 
-  layer output_layer = net_.layers[net_.n - 1];
+  layer output_layer = net_->layers[net_->n - 1];
   boxes_.resize(output_layer.w * output_layer.h * output_layer.n);
   probs_.resize(output_layer.w * output_layer.h * output_layer.n);
   float *probs_mem = static_cast<float *>(calloc(probs_.size() * output_layer.classes, sizeof(float)));
@@ -71,10 +71,10 @@ Detector::~Detector()
   free_network(net_);
 }
 
-yolo2::ImageDetections Detector::detect(float *data)
+yolo2::ImageDetections Detector::detect(float *data, int original_width, int original_height)
 {
   yolo2::ImageDetections detections;
-  detections.detections = forward(data);
+  detections.detections = forward(data, original_width, original_height);
   return detections;
 }
 
@@ -102,25 +102,25 @@ image Detector::convert_image(const sensor_msgs::ImageConstPtr& msg)
     j += offset;
   }
 
-  if (net_.w == width && net_.h == height)
+  if (net_->w == (int)width && net_->h == (int)height)
   {
     return im;
   }
-  image resized = resize_image(im, net_.w, net_.h);
+  image resized = letterbox_image(im, net_->w, net_->h);
   free_image(im);
   return resized;
 }
 
-std::vector<yolo2::Detection> Detector::forward(float *data)
+std::vector<yolo2::Detection> Detector::forward(float *data, int original_width, int original_height)
 {
   float *prediction = network_predict(net_, data);
-  layer output_layer = net_.layers[net_.n - 1];
+  layer output_layer = net_->layers[net_->n - 1];
 
   output_layer.output = prediction;
   if (output_layer.type == DETECTION)
     get_detection_boxes(output_layer, 1, 1, min_confidence_, probs_.data(), boxes_.data(), 0);
   else if (output_layer.type == REGION)
-    get_region_boxes(output_layer, 1, 1, min_confidence_, probs_.data(), boxes_.data(), 0, 0);
+    get_region_boxes(output_layer, original_width, original_height, net_->w, net_->h, min_confidence_, probs_.data(), boxes_.data(), 0, 0, 0, .5, 1);
   else
     error("Last layer must produce detections\n");
 
