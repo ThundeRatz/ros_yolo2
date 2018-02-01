@@ -128,6 +128,11 @@ target_link_libraries(yolo2
   ${CUDA_LIBRARIES}
   ${CUDA_curand_LIBRARY}
 )
+if (${CUDNN})
+  target_link_libraries(yolo2
+    cudnn
+  )
+endif()
 
 add_library(yolo2_nodelet
   src/yolo2_nodelet.cpp
