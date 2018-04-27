@@ -102,7 +102,7 @@ image Detector::convert_image(const sensor_msgs::ImageConstPtr& msg)
     j += offset;
   }
 
-  if (net_->w == (int)width && net_->h == (int)height)
+  if (net_->w == static_cast<int>(width) && net_->h == static_cast<int>(height))
   {
     return im;
   }
@@ -120,7 +120,8 @@ std::vector<yolo2::Detection> Detector::forward(float *data, int original_width,
   if (output_layer.type == DETECTION)
     get_detection_boxes(output_layer, 1, 1, min_confidence_, probs_.data(), boxes_.data(), 0);
   else if (output_layer.type == REGION)
-    get_region_boxes(output_layer, original_width, original_height, net_->w, net_->h, min_confidence_, probs_.data(), boxes_.data(), 0, 0, 0, .5, 1);
+    get_region_boxes(output_layer, original_width, original_height, net_->w, net_->h, min_confidence_,
+        probs_.data(), boxes_.data(), 0, 0, 0, .5, 1);
   else
     error("Last layer must produce detections\n");
 
