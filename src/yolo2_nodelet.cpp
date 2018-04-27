@@ -106,12 +106,11 @@ class Yolo2Nodelet : public nodelet::Nodelet
         std::unique_lock<std::mutex> lock(mutex);
         while (!im_condition.wait_for(lock, std::chrono::milliseconds(500), []
         {
-          return image_data || !ros::ok();
+          return image_data;
         }
         ))  // NOLINT(whitespace/parens)
-          continue;
-        if (!ros::ok())
-          return;
+          if (!ros::ok())
+            return;
         data = image_data;
         image_data = nullptr;
         stamp = timestamp;
