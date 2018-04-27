@@ -30,6 +30,7 @@
 #include <ros/ros.h>
 #include <yolo2/ImageDetections.h>
 
+#include <chrono>  // NOLINT(build/c++11)
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -103,7 +104,14 @@ class Yolo2Nodelet : public nodelet::Nodelet
       ros::Time stamp;
       {
         std::unique_lock<std::mutex> lock(mutex);
-        im_condition.wait(lock, []{return image_data;});
+        while (!im_condition.wait_for(lock, std::chrono::milliseconds(500), []
+        {
+          return image_data || !ros::ok();
+        }
+        ))  // NOLINT(whitespace/parens)
+          continue;
+        if (!ros::ok())
+          return;
         data = image_data;
         image_data = nullptr;
         stamp = timestamp;
